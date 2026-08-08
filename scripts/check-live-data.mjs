@@ -1,13 +1,6 @@
-import { loadKnowledgeBase } from "../lib/knowledge.mjs";
+import { loadLiveData, digestLiveData } from "../lib/sheets.mjs";
 
-const kb = await loadKnowledgeBase();
-const counts = {
-  training_principles: kb.training_principles.length,
-  session_library: kb.session_library.length,
-  progression_rules: kb.progression_rules.length,
-  plan_templates: kb.plan_templates.length,
-  safety_rules: kb.safety_rules.length,
-  intensity_guidance: kb.intensity_guidance.length,
-  sources: kb.sources.length,
-};
-console.log(JSON.stringify({ meta: kb.meta, counts }, null, 2));
+// Verifies the live Google Sheets database is reachable and prints the digest.
+const data = await loadLiveData({ force: true });
+console.log(digestLiveData(data));
+console.log(`\nrunners: ${data.runners.length}  runs: ${data.runs.length}  summary rows: ${data.summary.length}`);
