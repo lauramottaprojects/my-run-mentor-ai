@@ -167,12 +167,31 @@ async function fetchSheetRows(sheetName) {
   return rowsToObjects(parseCsv(await res.text()));
 }
 
+// Recompute any Summary values the import dropped (e.g. "16 of 20") live from Runs/Runners.
+function enrichSummary(summary, runners, runs) {
+  const isOver = (r) => String(r.overreach || "").trim().toLowerCase() === "true";
+  const isDone = (r) => String(r.completed || "").trim().toLowerCase() === "true";
+  const overRunners = runners.filter(isOver);
+  const churned = overRunners.filter((r) => Number(r.churn_week) <= 8);
+  const overIds = new Set(overRunners.map((r) => r.runner_id));
+  const overRuns = runs.filter((r) => overIds.has(r.runner_id));
+  const balRuns = runs.filter((r) => !overIds.has(r.runner_id));
+  const map = {};
+  summary.forEach((r) => { if (r && r.Metric) map[String(r.Metric).trim().toLowerCase()] = r; });
+  const set = (m, v) => { const row = map[m.toLowerCase()]; if (row && !String(row.Value || "").trim()) row.Value = v; };
+  set("Runners showing overreach signature", `${overRunners.length} of ${runners.length}`);
+  set("Overreachers who stopped (churned)", `${churned.length} of ${overRunners.length}`);
+  set("Missed sessions overreachers", `${overRuns.filter((r) => !isDone(r)).length} of ${overRuns.length}`);
+  set("Missed sessions balanced", `${balRuns.filter((r) => !isDone(r)).length} of ${balRuns.length}`);
+}
+
 async function loadLiveKb() {
   const dot = $("liveDot"), text = $("liveText"), info = $("kbInfo"), time = $("kbTime");
   try {
     const [runners, runs, summary] = await Promise.all(SHEET_NAMES.map(fetchSheetRows));
+    enrichSummary(summary, runners, runs);
     const lines = summary
-      .filter((r) => r && r.Metric)
+      .filter((r) => r && r.Metric && String(r.Value || "").trim())
       .map((r) => `<b>${esc(r.Value)}</b><small>${esc(r.Metric)}</small>`)
       .join("");
     info.innerHTML = lines || "<b>0</b><small>summary empty</small>";
