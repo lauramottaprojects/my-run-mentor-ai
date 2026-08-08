@@ -2,9 +2,9 @@
 import readline from "node:readline/promises";
 import { stdin as input, stdout as output } from "node:process";
 import { readFileSync } from "node:fs";
-import { loadKnowledgeBase, buildKnowledgeContext, guessLevelGoal, deriveRunnerFlags } from "./lib/knowledge.mjs";
+import { loadKnowledgeBase, buildKnowledgeContext, guessLevelGoal, deriveRunnerFlags, buildRunnerFromAnswers } from "./lib/knowledge.mjs";
 import { runFiveAgentPipeline, composeFinalReply, safetyShortCircuit, AGENTS } from "./lib/agents.mjs";
-import { DEMO_RUNNERS, GEMINI_MODEL, SPREADSHEET_URL } from "./lib/config.mjs";
+import { DEMO_RUNNERS, GEMINI_MODEL, SPREADSHEET_URL, ONBOARDING_QUESTIONS } from "./lib/config.mjs";
 
 const ART = `
  _ __ ___  _ __ ___   __ _ _ __   _ __ ___   __ _ _ __ ___  _   _ 
@@ -16,15 +16,13 @@ const ART = `
 const HELP = `
 My Run Mentor AI - terminal chat
 ================================
-Describe your running background and goal in plain English, e.g.:
-  "I am a complete beginner hoping to complete my first 5K in September.
-   I can run about three times a week and I have been doing 20 minute
-   easy runs."
+Answer the 9 onboarding questions to build your runner profile. Your running
+level is DERIVED from your answers - you never state it yourself.
 
 Commands:
   /demo [1|2|3]   Use a Garmin-style demonstration runner profile
-                  (1 = Beginner 5K, 2 = Recreational 10K, 3 = General fitness)
-  /new            Reset the conversation
+                  (1 = Beginner 5K, 2 = Recreational 10K, 3 = Advanced half marathon)
+  /new            Reset the conversation (answer the questions again)
   /help           Show this help
   /quit           Exit
 
@@ -131,6 +129,20 @@ async function runTurn({ kb, apiKey, runner, history }) {
   console.log("\n" + "-".repeat(64));
 }
 
+async function runIntake(rl) {
+  console.log("\nBuild your runner profile. Answer each question in your own words.\n");
+  const answers = {};
+  for (const q of ONBOARDING_QUESTIONS) {
+    const ans = await rl.question(`\x1b[36m${q.category}\x1b[0m\n${q.question}\n> `);
+    if (ans && ans.trim()) answers[q.id] = ans.trim();
+  }
+  const runner = buildRunnerFromAnswers(answers, { data_source: "manual entry", label: "Your profile" });
+  console.log(
+    `\n\x1b[36mDerived level:\x1b[0m ${runner.derived_level} | \x1b[36mGoal:\x1b[0m ${runner.goal_type}\n`
+  );
+  return runner;
+}
+
 function runnerContextForPrompt(runner) {
   const { label, data_source: _, ...rest } = runner;
   const lines = Object.entries(rest)
@@ -161,6 +173,10 @@ async function main() {
   let history = [];
   let queue = Promise.resolve();
 
+  if (!runner && !args.firstMessage) {
+    runner = await runIntake(rl);
+  }
+
   const enqueue = (fn) => {
     queue = queue
       .then(fn)
@@ -189,7 +205,8 @@ async function main() {
       if (cmd === "/new") {
         runner = null;
         history = [];
-        console.log("Conversation reset. Tell me about your running background and goal.");
+        console.log("Conversation reset. Answering the onboarding questions again...");
+        runner = await runIntake(rl);
         return;
       }
       if (cmd.startsWith("/demo")) {
