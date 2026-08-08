@@ -1,14 +1,13 @@
 {
   "name": "my-run-mentor-ai",
   "version": "1.0.0",
-  "description": "My Run Mentor AI - adaptive, explainable running coach. Terminal chat (chat.mjs), GitHub Pages frontend (index.html) and a Vercel serverless proxy for the Gemini API.",
+  "description": "My Run Mentor AI - running coach for returning runners. Five-agent pipeline, live Google Sheets database, Gemini Flash-Lite. GitHub Pages frontend (index.html), Vercel serverless proxy (api/gemini.mjs), terminal chat (chat.mjs).",
   "type": "module",
   "main": "chat.mjs",
   "scripts": {
     "chat": "node chat.mjs",
-    "dev:api": "node api/dev-server.mjs",
-    "check:kb": "node scripts/check-live-data.mjs",
-    "test:pipeline": "node scripts/test-pipeline.mjs"
+    "start": "node chat.mjs",
+    "check:data": "node scripts/check-live-data.mjs"
   },
   "engines": {
     "node": ">=18"
