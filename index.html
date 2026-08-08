@@ -5,182 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0" />
 <title>My Run Mentor AI</title>
 <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>" />
-<style>
-  :root {
-    --bg: #0d1117;
-    --bg2: #161b22;
-    --bg3: #1c2330;
-    --border: #2d3644;
-    --text: #e6edf3;
-    --muted: #9aa7b4;
-    --accent: #4ade80;
-    --accent2: #22d3ee;
-    --accent-dark: #166534;
-    --warn: #facc15;
-    --danger: #f87171;
-    --radius: 14px;
-    --shadow: 0 8px 24px rgba(0, 0, 0, .35);
-    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
-  }
-  * { box-sizing: border-box; }
-  html, body { margin: 0; padding: 0; height: 100%; }
-  body {
-    background: radial-gradient(1200px 600px at 80% -10%, #12251d 0%, var(--bg) 55%) fixed;
-    color: var(--text);
-    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
-    font-size: 15px;
-    line-height: 1.55;
-  }
-  #app { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
-
-  header {
-    display: flex; align-items: center; gap: 14px;
-    padding: 12px 20px;
-    background: rgba(13, 17, 23, .85);
-    border-bottom: 1px solid var(--border);
-    backdrop-filter: blur(6px);
-    z-index: 5;
-  }
-  .logo {
-    width: 40px; height: 40px; border-radius: 12px; flex: none;
-    background: linear-gradient(135deg, var(--accent2), var(--accent));
-    display: grid; place-items: center; font-size: 22px;
-    box-shadow: var(--shadow);
-  }
-  .brand h1 { margin: 0; font-size: 18px; letter-spacing: .2px; }
-  .brand .sub { color: var(--muted); font-size: 12px; }
-  .live-badge {
-    margin-left: auto; display: flex; align-items: center; gap: 8px;
-    font-size: 12px; color: var(--muted); padding: 6px 10px;
-    background: var(--bg2); border: 1px solid var(--border); border-radius: 999px;
-    max-width: 46vw;
-  }
-  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
-  .dot.live { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
-  .dot.err { background: var(--danger); }
-
-  main { display: grid; grid-template-columns: 340px 1fr; min-height: 0; }
-  @media (max-width: 860px) {
-    main { grid-template-columns: 1fr; }
-    #app { height: auto; min-height: 100vh; }
-    .panel { display: block; border-right: none; border-bottom: 1px solid var(--border); }
-    #messages { min-height: 45vh; }
-  }
-
-  .panel {
-    overflow-y: auto; padding: 16px;
-    border-right: 1px solid var(--border);
-    background: rgba(13, 17, 23, .55);
-  }
-  .card {
-    background: var(--bg2); border: 1px solid var(--border);
-    border-radius: var(--radius); padding: 14px; margin-bottom: 14px;
-  }
-  .card h2 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: .6px; color: var(--accent); }
-  .card p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
-
-  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
-  input, select, textarea {
-    width: 100%; padding: 9px 10px; font-size: 14px; color: var(--text);
-    background: var(--bg3); border: 1px solid var(--border); border-radius: 9px;
-    outline: none; font-family: inherit;
-  }
-  textarea { resize: vertical; min-height: 48px; line-height: 1.4; }
-  input:focus, select:focus, textarea:focus { border-color: var(--accent2); }
-  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
-  .qfield { margin-bottom: 2px; }
-  .qfield .q { font-size: 13px; color: var(--text); }
-  .qfield .ex { font-size: 11.5px; color: var(--muted); font-style: italic; margin: 2px 0 4px; }
-
-  .row { display: flex; gap: 8px; }
-  .row > div { flex: 1; }
-
-  .btn {
-    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
-    padding: 10px 14px; font-size: 14px; font-weight: 600; border-radius: 10px;
-    border: 1px solid var(--border); background: var(--bg3); color: var(--text);
-    cursor: pointer; transition: filter .15s, transform .05s; width: 100%;
-  }
-  .btn:hover { filter: brightness(1.15); }
-  .btn:active { transform: scale(.98); }
-  .btn.primary {
-    background: linear-gradient(135deg, var(--accent2), var(--accent));
-    color: #04120b; border: none;
-  }
-  .btn.ghost { background: transparent; }
-  .btn.small { padding: 7px 10px; font-size: 13px; width: auto; }
-  .btn:disabled { opacity: .5; cursor: not-allowed; }
-
-  .kbi { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 12.5px; color: var(--muted); }
-  .kbi b { color: var(--text); font-weight: 600; text-align: right; font-family: var(--mono); }
-  .kbi small { font-size: 11px; color: var(--muted); }
-
-  .chat { display: flex; flex-direction: column; min-height: 0; }
-  .chat-head {
-    padding: 10px 20px; font-size: 12px; color: var(--muted);
-    border-bottom: 1px solid var(--border); background: rgba(13,17,23,.5);
-  }
-  #messages {
-    flex: 1; overflow-y: auto; padding: 22px 20px;
-    display: flex; flex-direction: column; gap: 18px;
-  }
-  .msg { max-width: 78%; display: flex; flex-direction: column; gap: 6px; }
-  .msg.user { align-self: flex-end; align-items: flex-end; }
-  .msg.bot { align-self: flex-start; align-items: flex-start; }
-  .bubble {
-    padding: 12px 16px; border-radius: 16px; font-size: 14.5px; overflow-wrap: anywhere;
-    box-shadow: 0 2px 10px rgba(0,0,0,.25);
-  }
-  .msg.user .bubble { background: linear-gradient(135deg, #14532d, #166534); border-top-right-radius: 4px; }
-  .msg.bot .bubble { background: var(--bg2); border: 1px solid var(--border); border-top-left-radius: 4px; }
-  .meta { font-size: 11px; color: var(--muted); padding: 0 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
-  .pipeline {
-    font-family: var(--mono); font-size: 10.5px; color: var(--accent2);
-    background: var(--bg3); border: 1px solid var(--border);
-    padding: 4px 8px; border-radius: 8px;
-  }
-  .pipeline .step { opacity: .35; }
-  .pipeline .step.on { opacity: 1; }
-  .pipeline .dec { color: var(--warn); }
-
-  .typing { display: inline-flex; gap: 5px; align-items: center; }
-  .typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: blink 1.2s infinite; }
-  .typing i:nth-child(2) { animation-delay: .2s; }
-  .typing i:nth-child(3) { animation-delay: .4s; }
-  @keyframes blink { 0%,80%,100% { opacity: .2; } 40% { opacity: 1; } }
-
-  footer {
-    border-top: 1px solid var(--border); padding: 12px 20px;
-    background: rgba(13,17,23,.9); display: flex; gap: 10px; align-items: flex-end;
-  }
-  #input {
-    flex: 1; min-height: 46px; max-height: 140px; resize: none; padding: 12px 14px;
-    background: var(--bg3); border: 1px solid var(--border); border-radius: 12px;
-    color: var(--text); font-size: 14.5px; outline: none; font-family: inherit;
-  }
-  #input:focus { border-color: var(--accent2); }
-  #send {
-    width: 52px; height: 46px; border-radius: 12px; border: none; cursor: pointer;
-    background: linear-gradient(135deg, var(--accent2), var(--accent)); font-size: 18px;
-  }
-  #send:disabled { opacity: .4; cursor: not-allowed; }
-
-  .bubble h1, .bubble h2, .bubble h3 { font-size: 15px; margin: 12px 0 6px; }
-  .bubble ul, .bubble ol { margin: 6px 0; padding-left: 22px; }
-  .bubble li { margin: 3px 0; }
-  .bubble code { background: var(--bg3); padding: 1px 5px; border-radius: 5px; font-family: var(--mono); font-size: 12.5px; }
-  .bubble hr { border: 0; border-top: 1px solid var(--border); margin: 12px 0; }
-  .bubble blockquote { margin: 8px 0; padding: 4px 12px; border-left: 3px solid var(--accent2); color: var(--muted); }
-  .bubble strong { color: var(--accent); }
-  .error { color: var(--danger); }
-  .toast {
-    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
-    background: var(--bg3); border: 1px solid var(--border); color: var(--text);
-    padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 20;
-    box-shadow: var(--shadow); max-width: 90vw;
-  }
-  .hidden { display: none !important; }
-</style>
+<link rel="stylesheet" href="style.css" />
 </head>
 <body>
 <div id="app">
@@ -188,9 +13,9 @@
     <div class="logo">🏃</div>
     <div class="brand">
       <h1>My Run Mentor AI</h1>
-      <div class="sub">Adaptive, explainable running coach · 5-agent pipeline</div>
+      <div class="sub">Coach for returning runners · five-agent pipeline · live data</div>
     </div>
-    <div class="live-badge" id="liveBadge" title="Training knowledge base loaded live from Google Sheets">
+    <div class="live-badge" id="liveBadge" title="Live runner database loaded from Google Sheets">
       <span class="dot" id="liveDot"></span>
       <span id="liveText">Connecting to live data…</span>
     </div>
@@ -199,447 +24,55 @@
   <main>
     <aside class="panel">
       <div class="card">
-        <h2>Onboarding</h2>
-        <p>Answer the questions below in your own words. Your running level is <b>derived from your answers</b> — you never need to state it. (The prototype does <b>not</b> access a real Garmin account.)</p>
-
-        <div id="onbQuestions"></div>
-
-        <label for="eventDate">Event date (optional — only if you are training for a specific event)</label>
-        <input type="date" id="eventDate" />
-
-        <button class="btn primary" id="startBtn" style="margin-top:14px">Start with these answers →</button>
-
-        <div style="display:flex; gap:8px; margin-top:10px">
-          <label for="demoSelect" style="margin:0; padding-top:10px; white-space:nowrap">Or load demo:</label>
-          <select id="demoSelect" style="flex:1">
-            <option value="">Choose a demonstration profile…</option>
-            <option value="1">Beginner · 5K (Garmin-style)</option>
-            <option value="2">Recreational · 10K (Garmin-style)</option>
-            <option value="3">Advanced · Half marathon (Garmin-style)</option>
-          </select>
+        <h2>Quick onboarding</h2>
+        <p>Answer in your own words. The coach derives your situation from your answers.</p>
+        <div class="qfield">
+          <label>How long since you last ran consistently?</label>
+          <input type="text" id="fGap" placeholder="e.g. 2 years" />
         </div>
+        <div class="qfield">
+          <label>How many days per week can you run?</label>
+          <input type="text" id="fDays" placeholder="e.g. 3" />
+        </div>
+        <div class="qfield">
+          <label>How did your last run feel?</label>
+          <input type="text" id="fFeel" placeholder="e.g. pushed hard, slightly sore" />
+        </div>
+        <div class="qfield">
+          <label>What are you training towards?</label>
+          <input type="text" id="fGoal" placeholder="e.g. back to 3x a week, first 5K" />
+        </div>
+        <div class="qfield">
+          <label>Event date (optional)</label>
+          <input type="date" id="fEvent" />
+        </div>
+        <button class="btn primary" id="startBtn">Start with these answers →</button>
       </div>
 
       <div class="card">
-        <h2>Live knowledge base</h2>
-        <div class="kbi" id="kbInfo">
-          <b>…</b><small>Loading records from Google Sheets</small>
-        </div>
+        <h2>Live cohort database</h2>
+        <div class="kbi" id="kbInfo"><b>…</b><small>Loading live records</small></div>
         <p id="kbTime" style="margin-top:10px"></p>
       </div>
 
       <div class="card">
-        <h2>How it works</h2>
-        <p><b style="color:var(--text)">Five collaborating agents</b> turn your details into a plan:</p>
-        <div class="kbi">
-          <b>1</b><small><b style="color:var(--text)">Atlas</b> · Researcher — analyses your situation</small>
-          <b>2</b><small><b style="color:var(--text)">Nova</b> · Designer — designs the experience</small>
-          <b>3</b><small><b style="color:var(--text)">Forge</b> · Maker — builds the plan</small>
-          <b>4</b><small><b style="color:var(--text)">Spark</b> · Communicator — talks to you</small>
-          <b>5</b><small><b style="color:var(--text)">Meridian</b> · Manager — reviews & approves</small>
-        </div>
-        <p style="margin-top:10px">All sessions are selected from the live training knowledge base by ID (e.g. T001, S001, PR001).</p>
+        <h2>Five agents</h2>
+        <div class="kbi" id="agentInfo"></div>
+        <p style="margin-top:10px">Every reply is produced by the unbroken handoff chain: <b>Researcher → Designer → Maker → Communicator → Manager</b>.</p>
       </div>
     </aside>
 
     <section class="chat">
-      <div class="chat-head" id="chatHead">Gemini 3.1 Flash-Lite · plan generated server-side · API key never sent to the browser</div>
+      <div class="chat-head" id="chatHead">Gemini 3.1 Flash-Lite · plan built server-side · API key never leaves the backend</div>
       <div id="messages"></div>
       <footer>
-        <textarea id="input" rows="1" placeholder="Ask about your plan, change your goal, report fatigue, or ask a general running question…"></textarea>
+        <textarea id="input" rows="1" placeholder="Ask about your plan, report fatigue, mention a missed run, or ask anything…"></textarea>
         <button id="send" title="Send">➤</button>
       </footer>
     </section>
   </main>
 </div>
 <div class="toast hidden" id="toast"></div>
-
-<script>
-"use strict";
-
-// ---------------------------------------------------------------- config
-const VERCEL_API_URL = "https://my-run-mentor-ai.vercel.app/api/chat"; // set at build time (deployed Vercel function)
-const SPREADSHEET_ID = "1HhnrnR9NisMCzzOF493O4nap1PJ2kXDM";
-const SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/" + SPREADSHEET_ID + "/edit";
-const SHEET_NAMES = [
-  "training_principles", "session_library", "progression_rules", "plan_templates",
-  "safety_rules", "intensity_guidance", "sources", "onboarding",
-];
-const AGENT_NAMES = ["Atlas", "Nova", "Forge", "Spark", "Meridian"];
-
-const ONBOARDING_QUESTIONS = [
-  { id: "duration_frequency", category: "Duration & frequency", question: "How long have you been running, and how often do you usually run?", example: "I've been running for 3 years, usually 3–4 times per week." },
-  { id: "distance_type", category: "Distance & type of runs", question: "What distances do you typically run, and what types of runs do you do?", example: "I typically run 5–10 km on roads, with occasional long weekend runs." },
-  { id: "motivation", category: "Motivation", question: "Why do you run?", example: "For health, stress relief, and to prepare for events." },
-  { id: "level_goals", category: "Level & goals", question: "Do you have any running goals you are training towards?", example: "I'm training to improve my 10K time." },
-  { id: "events", category: "Events participated in", question: "Which running events have you taken part in?", example: "I've completed two 10K races." },
-  { id: "challenges", category: "Challenges", question: "What challenges or obstacles do you face with running?", example: "I struggle with knee pain during longer distances." },
-  { id: "environment", category: "Environment", question: "Where do you usually run?", example: "Roads, parks, and sometimes the treadmill." },
-  { id: "equipment_preferences", category: "Equipment & preferences", question: "What equipment or tracking do you use?", example: "I use Strava to track my runs." },
-  { id: "feelings_experience", category: "Feelings & experience", question: "How does running make you feel?", example: "Running helps me manage stress and improves my mood." },
-];
-
-// ---------------------------------------------------------------- state
-const state = {
-  runner: null,
-  history: [],
-  busy: false,
-  pipelineEl: null,
-};
-
-// ---------------------------------------------------------------- dom helpers
-const $ = (id) => document.getElementById(id);
-const messagesEl = $("messages");
-const inputEl = $("input");
-const sendBtn = $("send");
-
-function toast(text) {
-  const el = $("toast");
-  el.textContent = text;
-  el.classList.remove("hidden");
-  clearTimeout(toast._t);
-  toast._t = setTimeout(() => el.classList.add("hidden"), 4200);
-}
-
-function addMessage(role, html, meta) {
-  const wrap = document.createElement("div");
-  wrap.className = "msg " + role;
-  const bubble = document.createElement("div");
-  bubble.className = "bubble";
-  bubble.innerHTML = html;
-  wrap.appendChild(bubble);
-  if (meta) {
-    const m = document.createElement("div");
-    m.className = "meta";
-    m.appendChild(meta);
-    wrap.appendChild(m);
-  }
-  messagesEl.appendChild(wrap);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-  return wrap;
-}
-
-function addBotTyping() {
-  const wrap = document.createElement("div");
-  wrap.className = "msg bot";
-  wrap.innerHTML =
-    '<div class="bubble"><span class="typing"><i></i><i></i><i></i></span></div>';
-  messagesEl.appendChild(wrap);
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-  return wrap;
-}
-
-// ---------------------------------------------------------------- markdown
-function esc(s) {
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
-}
-
-function renderMarkdown(text) {
-  const lines = esc(text).split(/\r?\n/);
-  let html = "";
-  let listType = null;
-  const closeList = () => { if (listType) { html += listType === "ul" ? "</ul>" : "</ol>"; listType = null; } };
-  for (let raw of lines) {
-    const line = raw.trim();
-    if (!line) { closeList(); html += "</p><p>"; continue; }
-    if (/^#{1,3}\s/.test(line)) {
-      closeList();
-      const level = line.match(/^#+/)[0].length;
-      const content = line.replace(/^#+\s*/, "");
-      html += `<h${level}>${content}</h${level}>`;
-      continue;
-    }
-    if (/^-{3,}$/.test(line)) { closeList(); html += "<hr>"; continue; }
-    if (/^&gt;\s?/.test(line)) {
-      closeList();
-      html += "<blockquote>" + line.replace(/^&gt;\s?/, "") + "</blockquote>";
-      continue;
-    }
-    const ulMatch = line.match(/^[-*]\s+(.+)$/);
-    const olMatch = line.match(/^\d+[.)]\s+(.+)$/);
-    if (ulMatch || olMatch) {
-      const type = ulMatch ? "ul" : "ol";
-      if (listType !== type) { closeList(); html += type === "ul" ? "<ul>" : "<ol>"; listType = type; }
-      html += "<li>" + (ulMatch ? ulMatch[1] : olMatch[1]) + "</li>";
-      continue;
-    }
-    closeList();
-    let processed = line
-      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
-      .replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, "$1<em>$2</em>")
-      .replace(/`([^`]+)`/g, "<code>$1</code>");
-    html += processed + "<br>";
-  }
-  closeList();
-  if (html.endsWith("</p><p>")) html = html.slice(0, -"<p>".length);
-  const final = html.replace(/<br><br>+$/, "");
-  return final;
-}
-
-// ---------------------------------------------------------------- pipeline indicator
-function pipelineTraceMeta() {
-  const el = document.createElement("span");
-  el.className = "pipeline";
-  el.innerHTML = AGENT_NAMES
-    .map((a) => `<span class="step" data-agent="${a}">${a}</span>`)
-    .join(" → ");
-  state.pipelineEl = el;
-  return el;
-}
-
-function setPipelineStep(agent, status) {
-  if (!state.pipelineEl) return;
-  const step = state.pipelineEl.querySelector(`[data-agent="${agent}"]`);
-  if (step) {
-    if (status === "running") step.classList.add("on");
-    else if (status === "done") { step.classList.add("on"); step.style.color = "var(--accent)"; }
-    else step.style.color = "var(--danger)";
-  }
-}
-
-function setPipelineDecision(decision) {
-  if (!state.pipelineEl) return;
-  const el = document.createElement("span");
-  el.className = "dec";
-  el.textContent = " · " + (decision || "?");
-  state.pipelineEl.appendChild(el);
-}
-
-function resetPipeline() {
-  state.pipelineEl = null;
-}
-
-// ---------------------------------------------------------------- live data
-async function loadLiveKb() {
-  const badge = $("liveBadge"), dot = $("liveDot"), text = $("liveText"), info = $("kbInfo"), time = $("kbTime");
-  try {
-    const results = await Promise.all(SHEET_NAMES.map(async (n) => {
-      try {
-        const url = "https://docs.google.com/spreadsheets/d/" + SPREADSHEET_ID +
-          "/gviz/tq?tqx=out:json&headers=1&sheet=" + encodeURIComponent(n);
-        const r = await fetch(url);
-        const t = await r.text();
-        const start = t.indexOf("{"), end = t.lastIndexOf(");");
-        const data = JSON.parse(t.slice(start, end));
-        if (data.status && data.status !== "ok") return { name: n, count: 0, ok: false };
-        return { name: n, count: Math.max(0, (data.table.rows || []).length), ok: true };
-      } catch {
-        return { name: n, count: 0, ok: false };
-      }
-    }));
-    const ok = results.filter((r) => r.ok);
-    const total = ok.reduce((a, b) => a + b.count, 0);
-    const labels = {
-      training_principles: "principles", session_library: "sessions",
-      progression_rules: "progression rules", plan_templates: "templates",
-      safety_rules: "safety rules", intensity_guidance: "intensity levels", sources: "sources",
-      onboarding: "questions",
-    };
-    info.innerHTML = ok.map((r) =>
-      `<b>${r.count}</b><small>${labels[r.name]}</small>`).join("");
-    time.innerHTML = `<small>Retrieved ${total} live records from <a href="${SPREADSHEET_URL}" target="_blank" rel="noopener" style="color:var(--accent2)">Google Sheets</a> at ${new Date().toLocaleTimeString()}</small>`;
-    dot.classList.add("live");
-    text.textContent = "Live data: " + total + " records";
-  } catch (err) {
-    dot.classList.add("err");
-    text.textContent = "Live data unavailable";
-    info.innerHTML = "<b>!</b><small>Could not reach Google Sheets</small>";
-  }
-}
-
-// ---------------------------------------------------------------- onboarding
-function buildOnboardingForm() {
-  const el = $("onbQuestions");
-  el.innerHTML = "";
-  for (const q of ONBOARDING_QUESTIONS) {
-    const field = document.createElement("div");
-    field.className = "qfield";
-    const lab = document.createElement("label");
-    lab.textContent = q.question;
-    const ex = document.createElement("div");
-    ex.className = "ex";
-    ex.textContent = "e.g. " + q.example;
-    const ta = document.createElement("textarea");
-    ta.setAttribute("data-key", q.id);
-    ta.rows = 2;
-    ta.placeholder = q.example;
-    field.appendChild(lab);
-    field.appendChild(ex);
-    field.appendChild(ta);
-    el.appendChild(field);
-  }
-}
-
-function readManualRunner() {
-  const answers = {};
-  for (const q of ONBOARDING_QUESTIONS) {
-    const ta = document.querySelector(`[data-key="${q.id}"]`);
-    const v = ta ? ta.value.trim() : "";
-    if (v) answers[q.id] = v;
-  }
-  return { answers, event_date: $("eventDate").value || "", data_source: "manual entry" };
-}
-
-const DEMO_RUNNERS = [
-  {
-    label: "Beginner · 5K (Garmin-style)",
-    data_source: "My Run Mentor AI demonstration training profile",
-    answers: {
-      duration_frequency: "I've been running for about 4 months, usually 2–3 times per week.",
-      distance_type: "I run short distances, about 3–5 km, mostly on the road.",
-      motivation: "For health and stress relief, and I want to finish my first 5K.",
-      level_goals: "I want to complete my first 5K in a few months.",
-      events: "I have not taken part in any races yet.",
-      challenges: "I find it hard to keep going after about 20 minutes.",
-      environment: "Roads and a local park.",
-      equipment_preferences: "I just started tracking my runs with my phone.",
-      feelings_experience: "Running helps me clear my head and feel more energetic.",
-    },
-  },
-  {
-    label: "Recreational · 10K (Garmin-style)",
-    data_source: "My Run Mentor AI demonstration training profile",
-    answers: {
-      duration_frequency: "I've been running for about 2 years, usually 3–4 times per week.",
-      distance_type: "I usually run 5–10 km on roads, with an occasional longer run on weekends.",
-      motivation: "I train for events and to keep fit.",
-      level_goals: "I'm training to improve my 10K time.",
-      events: "I've completed two 10K races.",
-      challenges: "Time constraints during the week.",
-      environment: "Roads and parks.",
-      equipment_preferences: "I use a running watch and Strava.",
-      feelings_experience: "Running gives me a sense of achievement.",
-    },
-  },
-  {
-    label: "Advanced · Half marathon (Garmin-style)",
-    data_source: "My Run Mentor AI demonstration training profile",
-    answers: {
-      duration_frequency: "I've been running consistently for about 5 years, usually 5 times per week.",
-      distance_type: "I run 10–20 km, including tempo runs and intervals, plus a long run on weekends.",
-      motivation: "I train for a half marathon and enjoy the challenge.",
-      level_goals: "I'm training to run a faster half marathon.",
-      events: "I've completed several 10Ks, two half marathons, and a full marathon.",
-      challenges: "Balancing training with work, and avoiding overtraining.",
-      environment: "Roads and trails.",
-      equipment_preferences: "I use a GPS watch and a structured training app.",
-      feelings_experience: "Running helps me manage stress and keeps me focused.",
-    },
-  },
-];
-
-function startOnboarding(runner, openingMessage) {
-  state.runner = runner;
-  state.history = [];
-  resetPipeline();
-  addMessage("user", renderMarkdown(openingMessage));
-  ask(openingMessage);
-}
-
-// ---------------------------------------------------------------- chat
-function setBusy(b) {
-  state.busy = b;
-  sendBtn.disabled = b;
-  inputEl.disabled = b;
-}
-
-async function ask(userText) {
-  const body = { message: userText, history: state.history, runner: state.runner || {} };
-  const typingEl = addBotTyping();
-  const meta = pipelineTraceMeta();
-  setBusy(true);
-  try {
-    if (!VERCEL_API_URL || VERCEL_API_URL.includes("__VERCEL")) {
-      throw new Error("Backend not configured. Set VERCEL_API_URL in index.html.");
-    }
-    const res = await fetch(VERCEL_API_URL, {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(body),
-    });
-    const data = await res.json().catch(() => ({}));
-    if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
-
-    const wrap = addMessage("bot", renderMarkdown(data.reply || "(no reply)"), meta);
-    if (data.pipeline && data.pipeline.steps) {
-      data.pipeline.steps.forEach((s) => setPipelineStep(s.agent, s.status));
-      setPipelineDecision(data.pipeline.decision);
-    }
-    if (data.knowledge && data.knowledge.level_context) {
-      const lg = document.createElement("span");
-      lg.className = "dec";
-      lg.textContent = " · " + data.knowledge.level_context +
-        (data.knowledge.goal_context ? " · " + data.knowledge.goal_context : "");
-      meta.appendChild(lg);
-    }
-    if (data.forge_status === "RESTRICTED" || data.pipeline?.decision === "HOLD") {
-      wrap.querySelector(".bubble").classList.add("restricted");
-    }
-    state.history.push({ role: "user", content: userText });
-    state.history.push({ role: "assistant", content: data.reply });
-  } catch (err) {
-    const meta2 = pipelineTraceMeta();
-    addMessage("bot", '<span class="error">⚠ ' + esc(err.message) + "</span>", meta2);
-    state.history.push({ role: "user", content: userText });
-  } finally {
-    typingEl.remove();
-    setBusy(false);
-    resetPipeline();
-  }
-}
-
-// ---------------------------------------------------------------- events
-function submitInput() {
-  const value = inputEl.value.trim();
-  if (!value || state.busy) return;
-  inputEl.value = "";
-  addMessage("user", renderMarkdown(value));
-  ask(value);
-}
-
-$("startBtn").addEventListener("click", () => {
-  const runner = readManualRunner();
-  if (!Object.keys(runner.answers).length) {
-    toast("Please answer at least one question before starting.");
-    return;
-  }
-  const parts = ["Please create my personalised training plan based on my answers."];
-  if (runner.event_date) parts.push("My event is on " + runner.event_date + ".");
-  startOnboarding(runner, parts.join(" "));
-});
-
-$("demoSelect").addEventListener("change", (e) => {
-  const idx = Number(e.target.value);
-  if (!idx) return;
-  const d = DEMO_RUNNERS[idx - 1];
-  const runner = { answers: { ...d.answers }, data_source: d.data_source };
-  startOnboarding(runner, "Use my " + d.label + " to create my plan.");
-});
-
-sendBtn.addEventListener("click", submitInput);
-inputEl.addEventListener("keydown", (e) => {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitInput(); }
-});
-inputEl.addEventListener("input", () => {
-  inputEl.style.height = "auto";
-  inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + "px";
-});
-
-// ---------------------------------------------------------------- init
-function welcome() {
-  const msg =
-    "👋 Welcome to **My Run Mentor AI** — your adaptive, explainable running coach.\n\n" +
-    "I work with five collaborating agents (**Atlas → Nova → Forge → Spark → Meridian**) and a **live training knowledge base** stored in Google Sheets. Every session in your plan is selected from that knowledge base by ID.\n\n" +
-    "To get started, use the **onboarding panel** on the left (or load a Garmin-style demonstration profile), or just type a description like:\n\n" +
-    "> *\"I'm a complete beginner aiming for my first 5K in three months, and I can run three times a week.\"*\n\n" +
-    "> ⚠ *Educational prototype — not medical advice. The demonstration profiles are fictional; this prototype does not access a real Garmin account.*";
-  addMessage("bot", renderMarkdown(msg));
-  messagesEl.scrollTop = messagesEl.scrollHeight;
-}
-
-welcome();
-buildOnboardingForm();
-loadLiveKb();
-</script>
+<script src="app.js"></script>
 </body>
 </html>
