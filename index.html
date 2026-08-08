@@ -60,7 +60,12 @@
   .dot.err { background: var(--danger); }
 
   main { display: grid; grid-template-columns: 340px 1fr; min-height: 0; }
-  @media (max-width: 860px) { main { grid-template-columns: 1fr; } .panel { display: none; } }
+  @media (max-width: 860px) {
+    main { grid-template-columns: 1fr; }
+    #app { height: auto; min-height: 100vh; }
+    .panel { display: block; border-right: none; border-bottom: 1px solid var(--border); }
+    #messages { min-height: 45vh; }
+  }
 
   .panel {
     overflow-y: auto; padding: 16px;
@@ -648,7 +653,7 @@ function welcome() {
     "👋 Welcome to **My Run Mentor AI** — your adaptive, explainable running coach.\n\n" +
     "I work with five collaborating agents (**Atlas → Nova → Forge → Spark → Meridian**) and a **live training knowledge base** stored in Google Sheets. Every session in your plan is selected from that knowledge base by ID.\n\n" +
     "To get started, use the **onboarding panel** on the left (or load a Garmin-style demonstration profile), or just type a description like:\n\n" +
-    "> *"I'm a complete beginner aiming for my first 5K in three months, and I can run three times a week."*\n\n" +
+    "> *\"I'm a complete beginner aiming for my first 5K in three months, and I can run three times a week.\"*\n\n" +
     "> ⚠ *Educational prototype — not medical advice. The demonstration profiles are fictional; this prototype does not access a real Garmin account.*";
   addMessage("bot", renderMarkdown(msg));
   messagesEl.scrollTop = messagesEl.scrollHeight;
