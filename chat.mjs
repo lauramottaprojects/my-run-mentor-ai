@@ -15,22 +15,48 @@ import { GEMINI_MODEL } from "./lib/config.mjs";
 
 const args = process.argv.slice(2);
 const keyFile = args[args.indexOf("--key-file") + 1] || "./gemini-api-key.txt";
-const model = args[args.indexOf("--model") + 1] || GEMINI_MODEL;
+const modelIdx = args.indexOf("--model");
+const model = modelIdx !== -1 ? args[modelIdx + 1] : GEMINI_MODEL;
 
 let apiKey = process.env.GEMINI_API_KEY || "";
 if (!apiKey) {
-  try {
-    apiKey = (await readFile(keyFile, "utf8")).trim();
-  } catch {
-    console.error(
-      `No Gemini API key found. Set GEMINI_API_KEY or provide a file at "${keyFile}".`
-    );
-    process.exit(1);
+  const candidates = [keyFile, "../gemini-api-key.txt", "./gemini-api-key.txt"];
+  for (const p of candidates) {
+    try {
+      apiKey = (await readFile(p, "utf8")).trim();
+      if (apiKey) break;
+    } catch {
+      /* try next */
+    }
   }
+}
+if (!apiKey) {
+  console.error(
+    `No Gemini API key found. Set GEMINI_API_KEY or provide a file at "${keyFile}".`
+  );
+  process.exit(1);
 }
 
 const rl = createInterface({ input: process.stdin, output: process.stdout });
-const ask = (q) => new Promise((res) => rl.question(q, res));
+let eof = false;
+const ask = (q) =>
+  new Promise((res) => {
+    if (rl.closed || eof) return res(null);
+    try {
+      rl.question(q, res);
+    } catch {
+      eof = true;
+      res(null);
+    }
+  });
+const askLine = async (q) => {
+  const v = await ask(q);
+  if (v === null) {
+    eof = true;
+    return "";
+  }
+  return v;
+};
 
 function line(s = "") {
   console.log(s);
@@ -45,12 +71,12 @@ async function onboard() {
   line("🧭  MY RUN MENTOR AI — quick onboarding");
   divider();
   const runner = { data_source: "terminal chat onboarding" };
-  const lastRun = await ask("1. Roughly how long since you last ran consistently (weeks/months)? ");
-  const days = await ask("2. How many days per week can you realistically run? ");
-  const feel = await ask(
+  const lastRun = await askLine("1. Roughly how long since you last ran consistently (weeks/months)? ");
+  const days = await askLine("2. How many days per week can you realistically run? ");
+  const feel = await askLine(
     "3. How did your most recent run feel? (e.g. 'good but I pushed hard', 'easy', 'sore shins') "
   );
-  const goal = await ask("4. What are you training towards? (e.g. 'back to 3x/week', 'first 5K') ");
+  const goal = await askLine("4. What are you training towards? (e.g. 'back to 3x/week', 'first 5K') ");
   runner.last_run_gap = lastRun.trim();
   runner.days_per_week = days.trim();
   runner.last_run_feel = feel.trim();
@@ -96,12 +122,14 @@ async function runTurn(text) {
 
 for (;;) {
   const input = await ask("You > ");
+  if (input === null) break;
   const text = input.trim();
   if (!text) continue;
   if (text.toLowerCase() === "/quit") {
     line("👋  Keep it easy out there. Every run counts.");
     break;
   }
+  if (eof) break;
   if (text.toLowerCase() === "/data") {
     line(digestLiveData(data));
     continue;
@@ -118,4 +146,5 @@ for (;;) {
   }
 }
 
-rl.close();
+if (!eof) rl.close();
+process.exitCode = 0;
