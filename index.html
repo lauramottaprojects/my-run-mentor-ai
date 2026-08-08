@@ -80,13 +80,17 @@
   .card p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
 
   label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
-  input, select {
+  input, select, textarea {
     width: 100%; padding: 9px 10px; font-size: 14px; color: var(--text);
     background: var(--bg3); border: 1px solid var(--border); border-radius: 9px;
-    outline: none;
+    outline: none; font-family: inherit;
   }
-  input:focus, select:focus { border-color: var(--accent2); }
+  textarea { resize: vertical; min-height: 48px; line-height: 1.4; }
+  input:focus, select:focus, textarea:focus { border-color: var(--accent2); }
   input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+  .qfield { margin-bottom: 2px; }
+  .qfield .q { font-size: 13px; color: var(--text); }
+  .qfield .ex { font-size: 11.5px; color: var(--muted); font-style: italic; margin: 2px 0 4px; }
 
   .row { display: flex; gap: 8px; }
   .row > div { flex: 1; }
@@ -196,81 +200,22 @@
     <aside class="panel">
       <div class="card">
         <h2>Onboarding</h2>
-        <p>Tell us about your running, or load a demonstration profile (the prototype does <b>not</b> access a real Garmin account).</p>
+        <p>Answer the questions below in your own words. Your running level is <b>derived from your answers</b> — you never need to state it. (The prototype does <b>not</b> access a real Garmin account.)</p>
 
-        <div class="row">
-          <div>
-            <label for="expLevel">Experience level</label>
-            <select id="expLevel">
-              <option value="Beginner">Beginner</option>
-              <option value="Recreational">Recreational</option>
-            </select>
-          </div>
-          <div>
-            <label for="goalType">Goal</label>
-            <select id="goalType">
-              <option value="5K completion">5K completion</option>
-              <option value="10K completion">10K completion</option>
-              <option value="General fitness">General fitness</option>
-            </select>
-          </div>
-        </div>
+        <div id="onbQuestions"></div>
 
-        <div class="row">
-          <div>
-            <label for="eventDate">Event date (optional)</label>
-            <input type="date" id="eventDate" />
-          </div>
-          <div>
-            <label for="availDays">Days/week</label>
-            <select id="availDays">
-              <option>1</option>
-              <option selected>2</option>
-              <option>3</option>
-              <option>4</option>
-              <option>5</option>
-            </select>
-          </div>
-        </div>
+        <label for="eventDate">Event date (optional — only if you are training for a specific event)</label>
+        <input type="date" id="eventDate" />
 
-        <div class="row">
-          <div>
-            <label for="recentDist">Recent weekly km (optional)</label>
-            <input type="number" id="recentDist" min="0" step="0.5" placeholder="e.g. 8" />
-          </div>
-          <div>
-            <label for="recentDur">Recent weekly min (optional)</label>
-            <input type="number" id="recentDur" min="0" step="5" placeholder="e.g. 60" />
-          </div>
-        </div>
-
-        <div class="row">
-          <div>
-            <label for="fatigue">Fatigue</label>
-            <select id="fatigue">
-              <option value="Low">Low</option>
-              <option value="Moderate" selected>Moderate</option>
-              <option value="High">High</option>
-            </select>
-          </div>
-          <div>
-            <label for="pain">Pain / injury</label>
-            <select id="pain">
-              <option value="No">No</option>
-              <option value="Yes">Yes</option>
-            </select>
-          </div>
-        </div>
-
-        <button class="btn primary" id="startBtn" style="margin-top:14px">Start with these details →</button>
+        <button class="btn primary" id="startBtn" style="margin-top:14px">Start with these answers →</button>
 
         <div style="display:flex; gap:8px; margin-top:10px">
           <label for="demoSelect" style="margin:0; padding-top:10px; white-space:nowrap">Or load demo:</label>
           <select id="demoSelect" style="flex:1">
             <option value="">Choose a demonstration profile…</option>
             <option value="1">Beginner · 5K (Garmin-style)</option>
-            <option value="2">Recreational · 10K</option>
-            <option value="3">General fitness</option>
+            <option value="2">Recreational · 10K (Garmin-style)</option>
+            <option value="3">Advanced · Half marathon (Garmin-style)</option>
           </select>
         </div>
       </div>
@@ -316,18 +261,23 @@
 const VERCEL_API_URL = "https://my-run-mentor-ai.vercel.app/api/chat"; // set at build time (deployed Vercel function)
 const SPREADSHEET_ID = "1HhnrnR9NisMCzzOF493O4nap1PJ2kXDM";
 const SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/" + SPREADSHEET_ID + "/edit";
-const SHEET_GIDS = {
-  README: "1311265438",
-  training_principles: "453493224",
-  session_library: "1846455735",
-  progression_rules: "262611858",
-  plan_templates: "570286622",
-  safety_rules: "808667200",
-  intensity_guidance: "545396412",
-  sources: "89176902",
-  change_log: "1029612045",
-};
+const SHEET_NAMES = [
+  "training_principles", "session_library", "progression_rules", "plan_templates",
+  "safety_rules", "intensity_guidance", "sources", "onboarding",
+];
 const AGENT_NAMES = ["Atlas", "Nova", "Forge", "Spark", "Meridian"];
+
+const ONBOARDING_QUESTIONS = [
+  { id: "duration_frequency", category: "Duration & frequency", question: "How long have you been running, and how often do you usually run?", example: "I've been running for 3 years, usually 3–4 times per week." },
+  { id: "distance_type", category: "Distance & type of runs", question: "What distances do you typically run, and what types of runs do you do?", example: "I typically run 5–10 km on roads, with occasional long weekend runs." },
+  { id: "motivation", category: "Motivation", question: "Why do you run?", example: "For health, stress relief, and to prepare for events." },
+  { id: "level_goals", category: "Level & goals", question: "Do you have any running goals you are training towards?", example: "I'm training to improve my 10K time." },
+  { id: "events", category: "Events participated in", question: "Which running events have you taken part in?", example: "I've completed two 10K races." },
+  { id: "challenges", category: "Challenges", question: "What challenges or obstacles do you face with running?", example: "I struggle with knee pain during longer distances." },
+  { id: "environment", category: "Environment", question: "Where do you usually run?", example: "Roads, parks, and sometimes the treadmill." },
+  { id: "equipment_preferences", category: "Equipment & preferences", question: "What equipment or tracking do you use?", example: "I use Strava to track my runs." },
+  { id: "feelings_experience", category: "Feelings & experience", question: "How does running make you feel?", example: "Running helps me manage stress and improves my mood." },
+];
 
 // ---------------------------------------------------------------- state
 const state = {
@@ -462,24 +412,30 @@ function resetPipeline() {
 // ---------------------------------------------------------------- live data
 async function loadLiveKb() {
   const badge = $("liveBadge"), dot = $("liveDot"), text = $("liveText"), info = $("kbInfo"), time = $("kbTime");
-  const names = ["training_principles", "session_library", "progression_rules", "plan_templates", "safety_rules", "intensity_guidance", "sources"];
   try {
-    const results = await Promise.all(names.map(async (n) => {
-      const url = "https://docs.google.com/spreadsheets/d/" + SPREADSHEET_ID +
-        "/gviz/tq?tqx=out:json&headers=1&gid=" + SHEET_GIDS[n];
-      const r = await fetch(url);
-      const t = await r.text();
-      const start = t.indexOf("{"), end = t.lastIndexOf(");");
-      const data = JSON.parse(t.slice(start, end));
-      return { name: n, count: Math.max(0, (data.table.rows || []).length) };
+    const results = await Promise.all(SHEET_NAMES.map(async (n) => {
+      try {
+        const url = "https://docs.google.com/spreadsheets/d/" + SPREADSHEET_ID +
+          "/gviz/tq?tqx=out:json&headers=1&sheet=" + encodeURIComponent(n);
+        const r = await fetch(url);
+        const t = await r.text();
+        const start = t.indexOf("{"), end = t.lastIndexOf(");");
+        const data = JSON.parse(t.slice(start, end));
+        if (data.status && data.status !== "ok") return { name: n, count: 0, ok: false };
+        return { name: n, count: Math.max(0, (data.table.rows || []).length), ok: true };
+      } catch {
+        return { name: n, count: 0, ok: false };
+      }
     }));
-    const total = results.reduce((a, b) => a + b.count, 0);
+    const ok = results.filter((r) => r.ok);
+    const total = ok.reduce((a, b) => a + b.count, 0);
     const labels = {
       training_principles: "principles", session_library: "sessions",
       progression_rules: "progression rules", plan_templates: "templates",
       safety_rules: "safety rules", intensity_guidance: "intensity levels", sources: "sources",
+      onboarding: "questions",
     };
-    info.innerHTML = results.map((r) =>
+    info.innerHTML = ok.map((r) =>
       `<b>${r.count}</b><small>${labels[r.name]}</small>`).join("");
     time.innerHTML = `<small>Retrieved ${total} live records from <a href="${SPREADSHEET_URL}" target="_blank" rel="noopener" style="color:var(--accent2)">Google Sheets</a> at ${new Date().toLocaleTimeString()}</small>`;
     dot.classList.add("live");
@@ -492,60 +448,83 @@ async function loadLiveKb() {
 }
 
 // ---------------------------------------------------------------- onboarding
+function buildOnboardingForm() {
+  const el = $("onbQuestions");
+  el.innerHTML = "";
+  for (const q of ONBOARDING_QUESTIONS) {
+    const field = document.createElement("div");
+    field.className = "qfield";
+    const lab = document.createElement("label");
+    lab.textContent = q.question;
+    const ex = document.createElement("div");
+    ex.className = "ex";
+    ex.textContent = "e.g. " + q.example;
+    const ta = document.createElement("textarea");
+    ta.setAttribute("data-key", q.id);
+    ta.rows = 2;
+    ta.placeholder = q.example;
+    field.appendChild(lab);
+    field.appendChild(ex);
+    field.appendChild(ta);
+    el.appendChild(field);
+  }
+}
+
 function readManualRunner() {
-  return {
-    experience_level: $("expLevel").value,
-    goal_type: $("goalType").value,
-    target_distance_km: $("goalType").value.includes("5K") ? 5 : ($("goalType").value.includes("10K") ? 10 : ""),
-    event_date: $("eventDate").value || "",
-    available_days: Number($("availDays").value),
-    recent_distance_km: $("recentDist").value || "",
-    recent_duration_min: $("recentDur").value || "",
-    fatigue_level: $("fatigue").value,
-    pain_flag: $("pain").value,
-    data_source: "manual entry",
-  };
+  const answers = {};
+  for (const q of ONBOARDING_QUESTIONS) {
+    const ta = document.querySelector(`[data-key="${q.id}"]`);
+    const v = ta ? ta.value.trim() : "";
+    if (v) answers[q.id] = v;
+  }
+  return { answers, event_date: $("eventDate").value || "", data_source: "manual entry" };
 }
 
 const DEMO_RUNNERS = [
   {
     label: "Beginner · 5K (Garmin-style)",
-    experience_level: "Beginner",
-    goal_type: "5K completion",
-    target_distance_km: 5,
-    event_date: "2026-09-20",
-    available_days: 3,
-    recent_distance_km: 8,
-    recent_duration_min: 60,
-    fatigue_level: "Low",
-    pain_flag: "No",
     data_source: "My Run Mentor AI demonstration training profile",
+    answers: {
+      duration_frequency: "I've been running for about 4 months, usually 2–3 times per week.",
+      distance_type: "I run short distances, about 3–5 km, mostly on the road.",
+      motivation: "For health and stress relief, and I want to finish my first 5K.",
+      level_goals: "I want to complete my first 5K in a few months.",
+      events: "I have not taken part in any races yet.",
+      challenges: "I find it hard to keep going after about 20 minutes.",
+      environment: "Roads and a local park.",
+      equipment_preferences: "I just started tracking my runs with my phone.",
+      feelings_experience: "Running helps me clear my head and feel more energetic.",
+    },
   },
   {
-    label: "Recreational · 10K",
-    experience_level: "Recreational",
-    goal_type: "10K completion",
-    target_distance_km: 10,
-    event_date: "2026-10-04",
-    available_days: 3,
-    recent_distance_km: 18,
-    recent_duration_min: 105,
-    fatigue_level: "Moderate",
-    pain_flag: "No",
+    label: "Recreational · 10K (Garmin-style)",
     data_source: "My Run Mentor AI demonstration training profile",
+    answers: {
+      duration_frequency: "I've been running for about 2 years, usually 3–4 times per week.",
+      distance_type: "I usually run 5–10 km on roads, with an occasional longer run on weekends.",
+      motivation: "I train for events and to keep fit.",
+      level_goals: "I'm training to improve my 10K time.",
+      events: "I've completed two 10K races.",
+      challenges: "Time constraints during the week.",
+      environment: "Roads and parks.",
+      equipment_preferences: "I use a running watch and Strava.",
+      feelings_experience: "Running gives me a sense of achievement.",
+    },
   },
   {
-    label: "General fitness",
-    experience_level: "Beginner",
-    goal_type: "General fitness",
-    target_distance_km: "",
-    event_date: "",
-    available_days: 2,
-    recent_distance_km: 5,
-    recent_duration_min: 40,
-    fatigue_level: "Moderate",
-    pain_flag: "No",
+    label: "Advanced · Half marathon (Garmin-style)",
     data_source: "My Run Mentor AI demonstration training profile",
+    answers: {
+      duration_frequency: "I've been running consistently for about 5 years, usually 5 times per week.",
+      distance_type: "I run 10–20 km, including tempo runs and intervals, plus a long run on weekends.",
+      motivation: "I train for a half marathon and enjoy the challenge.",
+      level_goals: "I'm training to run a faster half marathon.",
+      events: "I've completed several 10Ks, two half marathons, and a full marathon.",
+      challenges: "Balancing training with work, and avoiding overtraining.",
+      environment: "Roads and trails.",
+      equipment_preferences: "I use a GPS watch and a structured training app.",
+      feelings_experience: "Running helps me manage stress and keeps me focused.",
+    },
   },
 ];
 
@@ -586,6 +565,13 @@ async function ask(userText) {
       data.pipeline.steps.forEach((s) => setPipelineStep(s.agent, s.status));
       setPipelineDecision(data.pipeline.decision);
     }
+    if (data.knowledge && data.knowledge.level_context) {
+      const lg = document.createElement("span");
+      lg.className = "dec";
+      lg.textContent = " · " + data.knowledge.level_context +
+        (data.knowledge.goal_context ? " · " + data.knowledge.goal_context : "");
+      meta.appendChild(lg);
+    }
     if (data.forge_status === "RESTRICTED" || data.pipeline?.decision === "HOLD") {
       wrap.querySelector(".bubble").classList.add("restricted");
     }
@@ -613,29 +599,21 @@ function submitInput() {
 
 $("startBtn").addEventListener("click", () => {
   const runner = readManualRunner();
-  const parts = [];
-  parts.push("I want help with training.");
-  parts.push("My experience level is " + runner.experience_level + ".");
-  parts.push("My goal is " + runner.goal_type + ".");
+  if (!Object.keys(runner.answers).length) {
+    toast("Please answer at least one question before starting.");
+    return;
+  }
+  const parts = ["Please create my personalised training plan based on my answers."];
   if (runner.event_date) parts.push("My event is on " + runner.event_date + ".");
-  if (runner.available_days) parts.push("I can train about " + runner.available_days + " days per week.");
-  if (runner.recent_distance_km) parts.push("I have been running about " + runner.recent_distance_km + " km per week.");
-  if (runner.recent_duration_min) parts.push("About " + runner.recent_duration_min + " minutes per week.");
-  if (runner.fatigue_level) parts.push("My fatigue level is " + runner.fatigue_level + ".");
-  if (runner.pain_flag === "Yes") parts.push("I am currently experiencing pain.");
-  const message = parts.join(" ");
-  startOnboarding(runner, message);
+  startOnboarding(runner, parts.join(" "));
 });
 
 $("demoSelect").addEventListener("change", (e) => {
   const idx = Number(e.target.value);
   if (!idx) return;
-  const runner = DEMO_RUNNERS[idx - 1];
-  const message =
-    "Use my " + runner.label + " to create my plan. " +
-    "Goal: " + runner.goal_type + "; experience: " + runner.experience_level +
-    "; I can train about " + runner.available_days + " days per week.";
-  startOnboarding(runner, message);
+  const d = DEMO_RUNNERS[idx - 1];
+  const runner = { answers: { ...d.answers }, data_source: d.data_source };
+  startOnboarding(runner, "Use my " + d.label + " to create my plan.");
 });
 
 sendBtn.addEventListener("click", submitInput);
@@ -660,6 +638,7 @@ function welcome() {
 }
 
 welcome();
+buildOnboardingForm();
 loadLiveKb();
 </script>
 </body>
