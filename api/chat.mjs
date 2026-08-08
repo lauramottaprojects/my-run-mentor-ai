@@ -1,4 +1,4 @@
-import { loadKnowledgeBase, buildKnowledgeContext, guessLevelGoal, deriveRunnerFlags } from "../lib/knowledge.mjs";
+import { loadKnowledgeBase, buildKnowledgeContext, guessLevelGoal, deriveRunnerFlags, buildRunnerFromAnswers } from "../lib/knowledge.mjs";
 import { runFiveAgentPipeline, composeFinalReply, safetyShortCircuit, AGENTS } from "../lib/agents.mjs";
 import { GEMINI_MODEL } from "../lib/config.mjs";
 
@@ -88,7 +88,9 @@ export default async function handler(req, res) {
 
   const message = String(body.message || "").slice(0, 4000);
   const history = Array.isArray(body.history) ? body.history.slice(-12) : [];
-  const runner = body.runner && typeof body.runner === "object" ? body.runner : {};
+  const runnerRaw = body.runner && typeof body.runner === "object" ? body.runner : {};
+  // Runner profile is built from the onboarding answers; level is derived, never self-declared.
+  const runner = runnerRaw.answers ? buildRunnerFromAnswers(runnerRaw.answers, runnerRaw) : runnerRaw;
 
   if (!message.trim() && !Object.keys(runner).length) {
     return json(res, 400, { error: "No message or runner data provided" });
