@@ -1,0 +1,661 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>My Run Mentor AI</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🏃</text></svg>" />
+<style>
+  :root {
+    --bg: #0d1117;
+    --bg2: #161b22;
+    --bg3: #1c2330;
+    --border: #2d3644;
+    --text: #e6edf3;
+    --muted: #9aa7b4;
+    --accent: #4ade80;
+    --accent2: #22d3ee;
+    --accent-dark: #166534;
+    --warn: #facc15;
+    --danger: #f87171;
+    --radius: 14px;
+    --shadow: 0 8px 24px rgba(0, 0, 0, .35);
+    --mono: ui-monospace, SFMono-Regular, "SF Mono", Menlo, Consolas, monospace;
+  }
+  * { box-sizing: border-box; }
+  html, body { margin: 0; padding: 0; height: 100%; }
+  body {
+    background: radial-gradient(1200px 600px at 80% -10%, #12251d 0%, var(--bg) 55%) fixed;
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+    font-size: 15px;
+    line-height: 1.55;
+  }
+  #app { display: grid; grid-template-rows: auto 1fr auto; height: 100vh; }
+
+  header {
+    display: flex; align-items: center; gap: 14px;
+    padding: 12px 20px;
+    background: rgba(13, 17, 23, .85);
+    border-bottom: 1px solid var(--border);
+    backdrop-filter: blur(6px);
+    z-index: 5;
+  }
+  .logo {
+    width: 40px; height: 40px; border-radius: 12px; flex: none;
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    display: grid; place-items: center; font-size: 22px;
+    box-shadow: var(--shadow);
+  }
+  .brand h1 { margin: 0; font-size: 18px; letter-spacing: .2px; }
+  .brand .sub { color: var(--muted); font-size: 12px; }
+  .live-badge {
+    margin-left: auto; display: flex; align-items: center; gap: 8px;
+    font-size: 12px; color: var(--muted); padding: 6px 10px;
+    background: var(--bg2); border: 1px solid var(--border); border-radius: 999px;
+    max-width: 46vw;
+  }
+  .dot { width: 8px; height: 8px; border-radius: 50%; background: var(--warn); flex: none; }
+  .dot.live { background: var(--accent); box-shadow: 0 0 8px var(--accent); }
+  .dot.err { background: var(--danger); }
+
+  main { display: grid; grid-template-columns: 340px 1fr; min-height: 0; }
+  @media (max-width: 860px) { main { grid-template-columns: 1fr; } .panel { display: none; } }
+
+  .panel {
+    overflow-y: auto; padding: 16px;
+    border-right: 1px solid var(--border);
+    background: rgba(13, 17, 23, .55);
+  }
+  .card {
+    background: var(--bg2); border: 1px solid var(--border);
+    border-radius: var(--radius); padding: 14px; margin-bottom: 14px;
+  }
+  .card h2 { margin: 0 0 10px; font-size: 14px; text-transform: uppercase; letter-spacing: .6px; color: var(--accent); }
+  .card p { margin: 0 0 8px; color: var(--muted); font-size: 13px; }
+
+  label { display: block; font-size: 12px; color: var(--muted); margin: 10px 0 4px; }
+  input, select {
+    width: 100%; padding: 9px 10px; font-size: 14px; color: var(--text);
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 9px;
+    outline: none;
+  }
+  input:focus, select:focus { border-color: var(--accent2); }
+  input[type="date"]::-webkit-calendar-picker-indicator { filter: invert(1); }
+
+  .row { display: flex; gap: 8px; }
+  .row > div { flex: 1; }
+
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 8px;
+    padding: 10px 14px; font-size: 14px; font-weight: 600; border-radius: 10px;
+    border: 1px solid var(--border); background: var(--bg3); color: var(--text);
+    cursor: pointer; transition: filter .15s, transform .05s; width: 100%;
+  }
+  .btn:hover { filter: brightness(1.15); }
+  .btn:active { transform: scale(.98); }
+  .btn.primary {
+    background: linear-gradient(135deg, var(--accent2), var(--accent));
+    color: #04120b; border: none;
+  }
+  .btn.ghost { background: transparent; }
+  .btn.small { padding: 7px 10px; font-size: 13px; width: auto; }
+  .btn:disabled { opacity: .5; cursor: not-allowed; }
+
+  .kbi { display: grid; grid-template-columns: auto 1fr; gap: 4px 10px; font-size: 12.5px; color: var(--muted); }
+  .kbi b { color: var(--text); font-weight: 600; text-align: right; font-family: var(--mono); }
+  .kbi small { font-size: 11px; color: var(--muted); }
+
+  .chat { display: flex; flex-direction: column; min-height: 0; }
+  .chat-head {
+    padding: 10px 20px; font-size: 12px; color: var(--muted);
+    border-bottom: 1px solid var(--border); background: rgba(13,17,23,.5);
+  }
+  #messages {
+    flex: 1; overflow-y: auto; padding: 22px 20px;
+    display: flex; flex-direction: column; gap: 18px;
+  }
+  .msg { max-width: 78%; display: flex; flex-direction: column; gap: 6px; }
+  .msg.user { align-self: flex-end; align-items: flex-end; }
+  .msg.bot { align-self: flex-start; align-items: flex-start; }
+  .bubble {
+    padding: 12px 16px; border-radius: 16px; font-size: 14.5px; overflow-wrap: anywhere;
+    box-shadow: 0 2px 10px rgba(0,0,0,.25);
+  }
+  .msg.user .bubble { background: linear-gradient(135deg, #14532d, #166534); border-top-right-radius: 4px; }
+  .msg.bot .bubble { background: var(--bg2); border: 1px solid var(--border); border-top-left-radius: 4px; }
+  .meta { font-size: 11px; color: var(--muted); padding: 0 4px; display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .pipeline {
+    font-family: var(--mono); font-size: 10.5px; color: var(--accent2);
+    background: var(--bg3); border: 1px solid var(--border);
+    padding: 4px 8px; border-radius: 8px;
+  }
+  .pipeline .step { opacity: .35; }
+  .pipeline .step.on { opacity: 1; }
+  .pipeline .dec { color: var(--warn); }
+
+  .typing { display: inline-flex; gap: 5px; align-items: center; }
+  .typing i { width: 7px; height: 7px; border-radius: 50%; background: var(--accent); animation: blink 1.2s infinite; }
+  .typing i:nth-child(2) { animation-delay: .2s; }
+  .typing i:nth-child(3) { animation-delay: .4s; }
+  @keyframes blink { 0%,80%,100% { opacity: .2; } 40% { opacity: 1; } }
+
+  footer {
+    border-top: 1px solid var(--border); padding: 12px 20px;
+    background: rgba(13,17,23,.9); display: flex; gap: 10px; align-items: flex-end;
+  }
+  #input {
+    flex: 1; min-height: 46px; max-height: 140px; resize: none; padding: 12px 14px;
+    background: var(--bg3); border: 1px solid var(--border); border-radius: 12px;
+    color: var(--text); font-size: 14.5px; outline: none; font-family: inherit;
+  }
+  #input:focus { border-color: var(--accent2); }
+  #send {
+    width: 52px; height: 46px; border-radius: 12px; border: none; cursor: pointer;
+    background: linear-gradient(135deg, var(--accent2), var(--accent)); font-size: 18px;
+  }
+  #send:disabled { opacity: .4; cursor: not-allowed; }
+
+  .bubble h1, .bubble h2, .bubble h3 { font-size: 15px; margin: 12px 0 6px; }
+  .bubble ul, .bubble ol { margin: 6px 0; padding-left: 22px; }
+  .bubble li { margin: 3px 0; }
+  .bubble code { background: var(--bg3); padding: 1px 5px; border-radius: 5px; font-family: var(--mono); font-size: 12.5px; }
+  .bubble hr { border: 0; border-top: 1px solid var(--border); margin: 12px 0; }
+  .bubble blockquote { margin: 8px 0; padding: 4px 12px; border-left: 3px solid var(--accent2); color: var(--muted); }
+  .bubble strong { color: var(--accent); }
+  .error { color: var(--danger); }
+  .toast {
+    position: fixed; bottom: 90px; left: 50%; transform: translateX(-50%);
+    background: var(--bg3); border: 1px solid var(--border); color: var(--text);
+    padding: 10px 16px; border-radius: 10px; font-size: 13px; z-index: 20;
+    box-shadow: var(--shadow); max-width: 90vw;
+  }
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="logo">🏃</div>
+    <div class="brand">
+      <h1>My Run Mentor AI</h1>
+      <div class="sub">Adaptive, explainable running coach · 5-agent pipeline</div>
+    </div>
+    <div class="live-badge" id="liveBadge" title="Training knowledge base loaded live from Google Sheets">
+      <span class="dot" id="liveDot"></span>
+      <span id="liveText">Connecting to live data…</span>
+    </div>
+  </header>
+
+  <main>
+    <aside class="panel">
+      <div class="card">
+        <h2>Onboarding</h2>
+        <p>Tell us about your running, or load a demonstration profile (the prototype does <b>not</b> access a real Garmin account).</p>
+
+        <div class="row">
+          <div>
+            <label for="expLevel">Experience level</label>
+            <select id="expLevel">
+              <option value="Beginner">Beginner</option>
+              <option value="Recreational">Recreational</option>
+            </select>
+          </div>
+          <div>
+            <label for="goalType">Goal</label>
+            <select id="goalType">
+              <option value="5K completion">5K completion</option>
+              <option value="10K completion">10K completion</option>
+              <option value="General fitness">General fitness</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="eventDate">Event date (optional)</label>
+            <input type="date" id="eventDate" />
+          </div>
+          <div>
+            <label for="availDays">Days/week</label>
+            <select id="availDays">
+              <option>1</option>
+              <option selected>2</option>
+              <option>3</option>
+              <option>4</option>
+              <option>5</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="recentDist">Recent weekly km (optional)</label>
+            <input type="number" id="recentDist" min="0" step="0.5" placeholder="e.g. 8" />
+          </div>
+          <div>
+            <label for="recentDur">Recent weekly min (optional)</label>
+            <input type="number" id="recentDur" min="0" step="5" placeholder="e.g. 60" />
+          </div>
+        </div>
+
+        <div class="row">
+          <div>
+            <label for="fatigue">Fatigue</label>
+            <select id="fatigue">
+              <option value="Low">Low</option>
+              <option value="Moderate" selected>Moderate</option>
+              <option value="High">High</option>
+            </select>
+          </div>
+          <div>
+            <label for="pain">Pain / injury</label>
+            <select id="pain">
+              <option value="No">No</option>
+              <option value="Yes">Yes</option>
+            </select>
+          </div>
+        </div>
+
+        <button class="btn primary" id="startBtn" style="margin-top:14px">Start with these details →</button>
+
+        <div style="display:flex; gap:8px; margin-top:10px">
+          <label for="demoSelect" style="margin:0; padding-top:10px; white-space:nowrap">Or load demo:</label>
+          <select id="demoSelect" style="flex:1">
+            <option value="">Choose a demonstration profile…</option>
+            <option value="1">Beginner · 5K (Garmin-style)</option>
+            <option value="2">Recreational · 10K</option>
+            <option value="3">General fitness</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="card">
+        <h2>Live knowledge base</h2>
+        <div class="kbi" id="kbInfo">
+          <b>…</b><small>Loading records from Google Sheets</small>
+        </div>
+        <p id="kbTime" style="margin-top:10px"></p>
+      </div>
+
+      <div class="card">
+        <h2>How it works</h2>
+        <p><b style="color:var(--text)">Five collaborating agents</b> turn your details into a plan:</p>
+        <div class="kbi">
+          <b>1</b><small><b style="color:var(--text)">Atlas</b> · Researcher — analyses your situation</small>
+          <b>2</b><small><b style="color:var(--text)">Nova</b> · Designer — designs the experience</small>
+          <b>3</b><small><b style="color:var(--text)">Forge</b> · Maker — builds the plan</small>
+          <b>4</b><small><b style="color:var(--text)">Spark</b> · Communicator — talks to you</small>
+          <b>5</b><small><b style="color:var(--text)">Meridian</b> · Manager — reviews & approves</small>
+        </div>
+        <p style="margin-top:10px">All sessions are selected from the live training knowledge base by ID (e.g. T001, S001, PR001).</p>
+      </div>
+    </aside>
+
+    <section class="chat">
+      <div class="chat-head" id="chatHead">Gemini 3.1 Flash-Lite · plan generated server-side · API key never sent to the browser</div>
+      <div id="messages"></div>
+      <footer>
+        <textarea id="input" rows="1" placeholder="Ask about your plan, change your goal, report fatigue, or ask a general running question…"></textarea>
+        <button id="send" title="Send">➤</button>
+      </footer>
+    </section>
+  </main>
+</div>
+<div class="toast hidden" id="toast"></div>
+
+<script>
+"use strict";
+
+// ---------------------------------------------------------------- config
+const VERCEL_API_URL = "https://my-run-mentor-ai.vercel.app/api/chat"; // set at build time (deployed Vercel function)
+const SPREADSHEET_ID = "1HhnrnR9NisMCzzOF493O4nap1PJ2kXDM";
+const SPREADSHEET_URL = "https://docs.google.com/spreadsheets/d/" + SPREADSHEET_ID + "/edit";
+const SHEET_GIDS = {
+  README: "1311265438",
+  training_principles: "453493224",
+  session_library: "1846455735",
+  progression_rules: "262611858",
+  plan_templates: "570286622",
+  safety_rules: "808667200",
+  intensity_guidance: "545396412",
+  sources: "89176902",
+  change_log: "1029612045",
+};
+const AGENT_NAMES = ["Atlas", "Nova", "Forge", "Spark", "Meridian"];
+
+// ---------------------------------------------------------------- state
+const state = {
+  runner: null,
+  history: [],
+  busy: false,
+  pipelineEl: null,
+};
+
+// ---------------------------------------------------------------- dom helpers
+const $ = (id) => document.getElementById(id);
+const messagesEl = $("messages");
+const inputEl = $("input");
+const sendBtn = $("send");
+
+function toast(text) {
+  const el = $("toast");
+  el.textContent = text;
+  el.classList.remove("hidden");
+  clearTimeout(toast._t);
+  toast._t = setTimeout(() => el.classList.add("hidden"), 4200);
+}
+
+function addMessage(role, html, meta) {
+  const wrap = document.createElement("div");
+  wrap.className = "msg " + role;
+  const bubble = document.createElement("div");
+  bubble.className = "bubble";
+  bubble.innerHTML = html;
+  wrap.appendChild(bubble);
+  if (meta) {
+    const m = document.createElement("div");
+    m.className = "meta";
+    m.appendChild(meta);
+    wrap.appendChild(m);
+  }
+  messagesEl.appendChild(wrap);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return wrap;
+}
+
+function addBotTyping() {
+  const wrap = document.createElement("div");
+  wrap.className = "msg bot";
+  wrap.innerHTML =
+    '<div class="bubble"><span class="typing"><i></i><i></i><i></i></span></div>';
+  messagesEl.appendChild(wrap);
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+  return wrap;
+}
+
+// ---------------------------------------------------------------- markdown
+function esc(s) {
+  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+}
+
+function renderMarkdown(text) {
+  const lines = esc(text).split(/\r?\n/);
+  let html = "";
+  let listType = null;
+  const closeList = () => { if (listType) { html += listType === "ul" ? "</ul>" : "</ol>"; listType = null; } };
+  for (let raw of lines) {
+    const line = raw.trim();
+    if (!line) { closeList(); html += "</p><p>"; continue; }
+    if (/^#{1,3}\s/.test(line)) {
+      closeList();
+      const level = line.match(/^#+/)[0].length;
+      const content = line.replace(/^#+\s*/, "");
+      html += `<h${level}>${content}</h${level}>`;
+      continue;
+    }
+    if (/^-{3,}$/.test(line)) { closeList(); html += "<hr>"; continue; }
+    if (/^&gt;\s?/.test(line)) {
+      closeList();
+      html += "<blockquote>" + line.replace(/^&gt;\s?/, "") + "</blockquote>";
+      continue;
+    }
+    const ulMatch = line.match(/^[-*]\s+(.+)$/);
+    const olMatch = line.match(/^\d+[.)]\s+(.+)$/);
+    if (ulMatch || olMatch) {
+      const type = ulMatch ? "ul" : "ol";
+      if (listType !== type) { closeList(); html += type === "ul" ? "<ul>" : "<ol>"; listType = type; }
+      html += "<li>" + (ulMatch ? ulMatch[1] : olMatch[1]) + "</li>";
+      continue;
+    }
+    closeList();
+    let processed = line
+      .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>")
+      .replace(/(^|[^*])\*([^*\s][^*]*?)\*(?!\*)/g, "$1<em>$2</em>")
+      .replace(/`([^`]+)`/g, "<code>$1</code>");
+    html += processed + "<br>";
+  }
+  closeList();
+  if (html.endsWith("</p><p>")) html = html.slice(0, -"<p>".length);
+  const final = html.replace(/<br><br>+$/, "");
+  return final;
+}
+
+// ---------------------------------------------------------------- pipeline indicator
+function pipelineTraceMeta() {
+  const el = document.createElement("span");
+  el.className = "pipeline";
+  el.innerHTML = AGENT_NAMES
+    .map((a) => `<span class="step" data-agent="${a}">${a}</span>`)
+    .join(" → ");
+  state.pipelineEl = el;
+  return el;
+}
+
+function setPipelineStep(agent, status) {
+  if (!state.pipelineEl) return;
+  const step = state.pipelineEl.querySelector(`[data-agent="${agent}"]`);
+  if (step) {
+    if (status === "running") step.classList.add("on");
+    else if (status === "done") { step.classList.add("on"); step.style.color = "var(--accent)"; }
+    else step.style.color = "var(--danger)";
+  }
+}
+
+function setPipelineDecision(decision) {
+  if (!state.pipelineEl) return;
+  const el = document.createElement("span");
+  el.className = "dec";
+  el.textContent = " · " + (decision || "?");
+  state.pipelineEl.appendChild(el);
+}
+
+function resetPipeline() {
+  state.pipelineEl = null;
+}
+
+// ---------------------------------------------------------------- live data
+async function loadLiveKb() {
+  const badge = $("liveBadge"), dot = $("liveDot"), text = $("liveText"), info = $("kbInfo"), time = $("kbTime");
+  const names = ["training_principles", "session_library", "progression_rules", "plan_templates", "safety_rules", "intensity_guidance", "sources"];
+  try {
+    const results = await Promise.all(names.map(async (n) => {
+      const url = "https://docs.google.com/spreadsheets/d/" + SPREADSHEET_ID +
+        "/gviz/tq?tqx=out:json&headers=1&gid=" + SHEET_GIDS[n];
+      const r = await fetch(url);
+      const t = await r.text();
+      const start = t.indexOf("{"), end = t.lastIndexOf(");");
+      const data = JSON.parse(t.slice(start, end));
+      return { name: n, count: Math.max(0, (data.table.rows || []).length) };
+    }));
+    const total = results.reduce((a, b) => a + b.count, 0);
+    const labels = {
+      training_principles: "principles", session_library: "sessions",
+      progression_rules: "progression rules", plan_templates: "templates",
+      safety_rules: "safety rules", intensity_guidance: "intensity levels", sources: "sources",
+    };
+    info.innerHTML = results.map((r) =>
+      `<b>${r.count}</b><small>${labels[r.name]}</small>`).join("");
+    time.innerHTML = `<small>Retrieved ${total} live records from <a href="${SPREADSHEET_URL}" target="_blank" rel="noopener" style="color:var(--accent2)">Google Sheets</a> at ${new Date().toLocaleTimeString()}</small>`;
+    dot.classList.add("live");
+    text.textContent = "Live data: " + total + " records";
+  } catch (err) {
+    dot.classList.add("err");
+    text.textContent = "Live data unavailable";
+    info.innerHTML = "<b>!</b><small>Could not reach Google Sheets</small>";
+  }
+}
+
+// ---------------------------------------------------------------- onboarding
+function readManualRunner() {
+  return {
+    experience_level: $("expLevel").value,
+    goal_type: $("goalType").value,
+    target_distance_km: $("goalType").value.includes("5K") ? 5 : ($("goalType").value.includes("10K") ? 10 : ""),
+    event_date: $("eventDate").value || "",
+    available_days: Number($("availDays").value),
+    recent_distance_km: $("recentDist").value || "",
+    recent_duration_min: $("recentDur").value || "",
+    fatigue_level: $("fatigue").value,
+    pain_flag: $("pain").value,
+    data_source: "manual entry",
+  };
+}
+
+const DEMO_RUNNERS = [
+  {
+    label: "Beginner · 5K (Garmin-style)",
+    experience_level: "Beginner",
+    goal_type: "5K completion",
+    target_distance_km: 5,
+    event_date: "2026-09-20",
+    available_days: 3,
+    recent_distance_km: 8,
+    recent_duration_min: 60,
+    fatigue_level: "Low",
+    pain_flag: "No",
+    data_source: "My Run Mentor AI demonstration training profile",
+  },
+  {
+    label: "Recreational · 10K",
+    experience_level: "Recreational",
+    goal_type: "10K completion",
+    target_distance_km: 10,
+    event_date: "2026-10-04",
+    available_days: 3,
+    recent_distance_km: 18,
+    recent_duration_min: 105,
+    fatigue_level: "Moderate",
+    pain_flag: "No",
+    data_source: "My Run Mentor AI demonstration training profile",
+  },
+  {
+    label: "General fitness",
+    experience_level: "Beginner",
+    goal_type: "General fitness",
+    target_distance_km: "",
+    event_date: "",
+    available_days: 2,
+    recent_distance_km: 5,
+    recent_duration_min: 40,
+    fatigue_level: "Moderate",
+    pain_flag: "No",
+    data_source: "My Run Mentor AI demonstration training profile",
+  },
+];
+
+function startOnboarding(runner, openingMessage) {
+  state.runner = runner;
+  state.history = [];
+  resetPipeline();
+  addMessage("user", renderMarkdown(openingMessage));
+  ask(openingMessage);
+}
+
+// ---------------------------------------------------------------- chat
+function setBusy(b) {
+  state.busy = b;
+  sendBtn.disabled = b;
+  inputEl.disabled = b;
+}
+
+async function ask(userText) {
+  const body = { message: userText, history: state.history, runner: state.runner || {} };
+  const typingEl = addBotTyping();
+  const meta = pipelineTraceMeta();
+  setBusy(true);
+  try {
+    if (!VERCEL_API_URL || VERCEL_API_URL.includes("__VERCEL")) {
+      throw new Error("Backend not configured. Set VERCEL_API_URL in index.html.");
+    }
+    const res = await fetch(VERCEL_API_URL, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+    const data = await res.json().catch(() => ({}));
+    if (!res.ok) throw new Error(data.error || ("HTTP " + res.status));
+
+    const wrap = addMessage("bot", renderMarkdown(data.reply || "(no reply)"), meta);
+    if (data.pipeline && data.pipeline.steps) {
+      data.pipeline.steps.forEach((s) => setPipelineStep(s.agent, s.status));
+      setPipelineDecision(data.pipeline.decision);
+    }
+    if (data.forge_status === "RESTRICTED" || data.pipeline?.decision === "HOLD") {
+      wrap.querySelector(".bubble").classList.add("restricted");
+    }
+    state.history.push({ role: "user", content: userText });
+    state.history.push({ role: "assistant", content: data.reply });
+  } catch (err) {
+    const meta2 = pipelineTraceMeta();
+    addMessage("bot", '<span class="error">⚠ ' + esc(err.message) + "</span>", meta2);
+    state.history.push({ role: "user", content: userText });
+  } finally {
+    typingEl.remove();
+    setBusy(false);
+    resetPipeline();
+  }
+}
+
+// ---------------------------------------------------------------- events
+function submitInput() {
+  const value = inputEl.value.trim();
+  if (!value || state.busy) return;
+  inputEl.value = "";
+  addMessage("user", renderMarkdown(value));
+  ask(value);
+}
+
+$("startBtn").addEventListener("click", () => {
+  const runner = readManualRunner();
+  const parts = [];
+  parts.push("I want help with training.");
+  parts.push("My experience level is " + runner.experience_level + ".");
+  parts.push("My goal is " + runner.goal_type + ".");
+  if (runner.event_date) parts.push("My event is on " + runner.event_date + ".");
+  if (runner.available_days) parts.push("I can train about " + runner.available_days + " days per week.");
+  if (runner.recent_distance_km) parts.push("I have been running about " + runner.recent_distance_km + " km per week.");
+  if (runner.recent_duration_min) parts.push("About " + runner.recent_duration_min + " minutes per week.");
+  if (runner.fatigue_level) parts.push("My fatigue level is " + runner.fatigue_level + ".");
+  if (runner.pain_flag === "Yes") parts.push("I am currently experiencing pain.");
+  const message = parts.join(" ");
+  startOnboarding(runner, message);
+});
+
+$("demoSelect").addEventListener("change", (e) => {
+  const idx = Number(e.target.value);
+  if (!idx) return;
+  const runner = DEMO_RUNNERS[idx - 1];
+  const message =
+    "Use my " + runner.label + " to create my plan. " +
+    "Goal: " + runner.goal_type + "; experience: " + runner.experience_level +
+    "; I can train about " + runner.available_days + " days per week.";
+  startOnboarding(runner, message);
+});
+
+sendBtn.addEventListener("click", submitInput);
+inputEl.addEventListener("keydown", (e) => {
+  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); submitInput(); }
+});
+inputEl.addEventListener("input", () => {
+  inputEl.style.height = "auto";
+  inputEl.style.height = Math.min(inputEl.scrollHeight, 140) + "px";
+});
+
+// ---------------------------------------------------------------- init
+function welcome() {
+  const msg =
+    "👋 Welcome to **My Run Mentor AI** — your adaptive, explainable running coach.\n\n" +
+    "I work with five collaborating agents (**Atlas → Nova → Forge → Spark → Meridian**) and a **live training knowledge base** stored in Google Sheets. Every session in your plan is selected from that knowledge base by ID.\n\n" +
+    "To get started, use the **onboarding panel** on the left (or load a Garmin-style demonstration profile), or just type a description like:\n\n" +
+    "> *"I'm a complete beginner aiming for my first 5K in three months, and I can run three times a week."*\n\n" +
+    "> ⚠ *Educational prototype — not medical advice. The demonstration profiles are fictional; this prototype does not access a real Garmin account.*";
+  addMessage("bot", renderMarkdown(msg));
+  messagesEl.scrollTop = messagesEl.scrollHeight;
+}
+
+welcome();
+loadLiveKb();
+</script>
+</body>
+</html>
